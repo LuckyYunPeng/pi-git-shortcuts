@@ -7,3 +7,7 @@ dist/
 .env.*
 !.env.example
 .DS_Store
+
+# Pix Agent
+.pi/
+.pi-lens/
