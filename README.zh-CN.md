@@ -168,10 +168,6 @@ pi-git-shortcuts/
 └── package.json
 ```
 
-## 致谢
-
-隔离生成 commit message 的思路参考了 [`tmonk/pi-committer`](https://github.com/tmonk/pi-committer)。`pi-git-shortcuts` 刻意保持更小的 command-only 功能面，专注显式快捷指令和主上下文隔离。
-
 ## 许可证
 
 MIT，详情见 [LICENSE](./LICENSE)。

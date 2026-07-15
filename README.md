@@ -168,10 +168,6 @@ pi-git-shortcuts/
 └── package.json
 ```
 
-## Acknowledgements
-
-The isolated commit-message approach was informed by [`tmonk/pi-committer`](https://github.com/tmonk/pi-committer). `pi-git-shortcuts` intentionally implements a smaller command-only surface focused on explicit shortcuts and main-context isolation.
-
 ## License
 
 MIT. See [LICENSE](./LICENSE).
