@@ -44,6 +44,22 @@ English
 
 选择中文时，Conventional Commit 的 type 和可选 scope 保持英文，description 和 body 使用简体中文。
 
+## 进度界面
+
+执行 `/commit` 或 `/cp` 时，编辑器上方会出现临时的 TUI 进度面板：
+
+```text
+◆ pi-git-shortcuts  commit + push  3s
+├─ ✓ 检查 Git 仓库
+├─ ✓ 暂存变更 · git add -A
+├─ ✓ 读取 staged diff
+└─ ○ 生成 commit message · 简体中文 · 4 个文件
+```
+
+面板会依次展示 commit、push、rebase 和冲突解决阶段。成功后显示 commit hash 或最终 push 结果，并在 6 秒后自动收起；错误状态会保留更久，并显示恢复信息。
+
+该面板通过 `setWidget()` 渲染，不会进入主会话或模型上下文。
+
 push 流程：
 
 1. 复用 `/commit` 流程。
@@ -117,6 +133,7 @@ pi-git-shortcuts/
 │   ├── commands.ts   # /commit 和 /cp 流程
 │   ├── config.ts     # 持久化 commit message 语言偏好
 │   ├── git.ts        # Git helper 和校验
+│   ├── progress.ts   # 临时 TUI 进度面板
 │   └── index.ts      # Pi extension 入口
 ├── test/
 ├── README.md

@@ -44,6 +44,22 @@ English is the default. The selection applies immediately and is persisted globa
 
 For Chinese output, the Conventional Commit type and optional scope remain in English while the description and body use Simplified Chinese.
 
+## Progress UI
+
+While `/commit` or `/cp` is running, a temporary TUI-only panel appears above the editor:
+
+```text
+◆ pi-git-shortcuts  commit + push  3s
+├─ ✓ Checking repository
+├─ ✓ Staging changes · git add -A
+├─ ✓ Reading staged diff
+└─ ○ Generating commit message · English · 4 file(s)
+```
+
+The panel advances through commit, push, rebase, and conflict-resolution stages. On success it shows the commit hash or final push result and hides after 6 seconds. Errors remain visible longer and include recovery details.
+
+The panel is rendered with `setWidget()` and does not enter the main conversation or model context.
+
 The push workflow:
 
 1. Reuses the `/commit` workflow.
@@ -117,6 +133,7 @@ pi-git-shortcuts/
 │   ├── commands.ts   # /commit and /cp workflows
 │   ├── config.ts     # persistent commit-language preference
 │   ├── git.ts        # Git helpers and validation
+│   ├── progress.ts   # transient TUI progress panel
 │   └── index.ts      # Pi extension entrypoint
 ├── test/
 ├── README.md

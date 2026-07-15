@@ -18,6 +18,7 @@ import {
 	isNonFastForwardError,
 	normalizeCommitMessage,
 } from "./git.js";
+import { GitShortcutProgress } from "./progress.js";
 
 interface CommitResult {
 	created: boolean;
@@ -41,35 +42,44 @@ export async function commitChanges(
 	ctx: ExtensionContext,
 	instructions = "",
 	commitLanguage: CommitLanguage = "english",
+	progress = new GitShortcutProgress(ctx, "commit"),
+	finalizeProgress = true,
 ): Promise<CommitResult | undefined> {
+	progress.step("Checking repository");
 	let git = createGitClient(pi, ctx.cwd);
 	const repositoryRoot = await getRepositoryRoot(git);
 	if (!repositoryRoot) {
-		ctx.ui.notify("pi-git-shortcuts: not inside a Git repository", "error");
+		progress.fail("Not inside a Git repository");
 		return undefined;
 	}
 	git = createGitClient(pi, repositoryRoot);
 
+	progress.step("Staging changes", "git add -A");
 	const addResult = await git.run(["add", "-A"]);
 	if (addResult.code !== 0) {
-		ctx.ui.notify(`pi-git-shortcuts: git add failed\n${formatGitError(addResult)}`, "error");
+		progress.fail("Unable to stage changes", formatGitError(addResult));
 		return undefined;
 	}
 	if (!(await hasStagedChanges(git))) {
-		ctx.ui.notify("pi-git-shortcuts: nothing to commit", "info");
+		if (finalizeProgress) progress.succeed("Nothing to commit", "working tree is clean");
+		else progress.step("No new commit needed", "working tree is clean");
 		return { created: false, repositoryRoot };
 	}
 
-	const [statResult, diffResult] = await Promise.all([
+	progress.step("Reading staged diff");
+	const [statResult, diffResult, filesResult] = await Promise.all([
 		git.run(["diff", "--cached", "--stat"]),
 		git.run(["diff", "--cached", "--no-ext-diff"]),
+		git.run(["diff", "--cached", "--name-only"]),
 	]);
 	if (statResult.code !== 0 || diffResult.code !== 0) {
-		ctx.ui.notify("pi-git-shortcuts: unable to read the staged diff", "error");
+		progress.fail("Unable to read the staged diff");
 		return undefined;
 	}
 
-	ctx.ui.notify("pi-git-shortcuts: generating commit message...", "info");
+	const fileCount = filesResult.stdout.split("\n").filter(Boolean).length;
+	const languageLabel = commitLanguage === "chinese" ? "简体中文" : "English";
+	progress.step("Generating commit message", `${languageLabel} · ${fileCount} file(s)`);
 	let message: string;
 	try {
 		message = normalizeCommitMessage(
@@ -84,28 +94,28 @@ export async function commitChanges(
 		);
 	} catch (error) {
 		const detail = error instanceof Error ? error.message : String(error);
-		ctx.ui.notify(`pi-git-shortcuts: commit message generation failed\n${detail}`, "error");
+		progress.fail("Commit message generation failed", detail);
 		return undefined;
 	}
 
 	if (!isConventionalCommitMessage(message)) {
-		ctx.ui.notify(
-			`pi-git-shortcuts: model returned an invalid commit message\n${message}`,
-			"error",
-		);
+		progress.fail("Model returned an invalid commit message", message);
 		return undefined;
 	}
 
+	const summary = message.split("\n", 1)[0] ?? message;
+	progress.step("Creating commit", summary);
 	try {
 		await commitWithMessageFile(git, message);
 	} catch (error) {
 		const detail = error instanceof Error ? error.message : String(error);
-		ctx.ui.notify(`pi-git-shortcuts: commit failed\n${detail}`, "error");
+		progress.fail("Commit failed", detail);
 		return undefined;
 	}
 
 	const logResult = await git.run(["log", "-1", "--format=%h %s"]);
-	ctx.ui.notify(`pi-git-shortcuts: committed ${logResult.stdout.trim()}`, "info");
+	if (finalizeProgress) progress.succeed("Commit created", logResult.stdout.trim());
+	else progress.step("Commit created", logResult.stdout.trim());
 	return { created: true, repositoryRoot };
 }
 
@@ -124,14 +134,15 @@ async function continueRebaseWithConflictResolution(
 	git: GitClient,
 	ctx: ExtensionContext,
 	repositoryRoot: string,
+	progress: GitShortcutProgress,
 ): Promise<void> {
 	for (let attempt = 0; attempt < 20; attempt++) {
 		const conflictedFiles = await getConflictedFiles(git);
 		if (conflictedFiles.length === 0) return;
 
-		ctx.ui.notify(
-			`pi-git-shortcuts: resolving ${conflictedFiles.length} rebase conflict(s)...`,
-			"warning",
+		progress.warning(
+			"Resolving rebase conflicts",
+			`${conflictedFiles.length} file(s) · round ${attempt + 1}`,
 		);
 		await resolveRebaseConflicts(ctx, repositoryRoot, conflictedFiles);
 
@@ -166,6 +177,7 @@ async function rebaseFromUpstream(
 	git: GitClient,
 	ctx: ExtensionContext,
 	repositoryRoot: string,
+	progress: GitShortcutProgress,
 ): Promise<void> {
 	const upstream = await getUpstream(git);
 	let pullResult: GitResult;
@@ -178,7 +190,7 @@ async function rebaseFromUpstream(
 	}
 	if (pullResult.code === 0) return;
 	if ((await getConflictedFiles(git)).length === 0) throw new Error(formatGitError(pullResult));
-	await continueRebaseWithConflictResolution(git, ctx, repositoryRoot);
+	await continueRebaseWithConflictResolution(git, ctx, repositoryRoot, progress);
 }
 
 export async function commitAndPush(
@@ -187,48 +199,48 @@ export async function commitAndPush(
 	instructions = "",
 	commitLanguage: CommitLanguage = "english",
 ): Promise<void> {
-	const commitResult = await commitChanges(pi, ctx, instructions, commitLanguage);
+	const progress = new GitShortcutProgress(ctx, "commit + push");
+	const commitResult = await commitChanges(pi, ctx, instructions, commitLanguage, progress, false);
 	if (!commitResult) return;
 
 	const git = createGitClient(pi, commitResult.repositoryRoot);
-	ctx.ui.notify("pi-git-shortcuts: pushing current branch...", "info");
+	progress.step("Pushing current branch");
 	let pushResult: Awaited<ReturnType<GitClient["run"]>>;
 	try {
 		pushResult = await pushCurrentBranch(git);
 	} catch (error) {
 		const detail = error instanceof Error ? error.message : String(error);
-		ctx.ui.notify(`pi-git-shortcuts: push failed\n${detail}`, "error");
+		progress.fail("Push failed", detail);
 		return;
 	}
 
 	if (pushResult.code === 0) {
-		ctx.ui.notify("pi-git-shortcuts: push complete", "info");
+		progress.succeed("Push complete");
 		return;
 	}
 	if (!isNonFastForwardError(pushResult)) {
-		ctx.ui.notify(`pi-git-shortcuts: push failed\n${formatGitError(pushResult)}`, "error");
+		progress.fail("Push failed", formatGitError(pushResult));
 		return;
 	}
 
-	ctx.ui.notify("pi-git-shortcuts: remote is ahead; rebasing...", "warning");
+	progress.warning("Remote branch is ahead", "starting rebase");
+	progress.step("Rebasing onto upstream");
 	try {
-		await rebaseFromUpstream(git, ctx, commitResult.repositoryRoot);
+		await rebaseFromUpstream(git, ctx, commitResult.repositoryRoot, progress);
 	} catch (error) {
 		const detail = error instanceof Error ? error.message : String(error);
-		ctx.ui.notify(
-			`pi-git-shortcuts: automatic rebase resolution failed\n${detail}\nThe rebase was left in progress for manual recovery.`,
-			"error",
+		progress.fail(
+			"Automatic rebase resolution failed",
+			`${detail}\nRebase left in progress for manual recovery.`,
 		);
 		return;
 	}
 
+	progress.step("Retrying push after rebase");
 	const retryResult = await pushCurrentBranch(git);
 	if (retryResult.code !== 0) {
-		ctx.ui.notify(
-			`pi-git-shortcuts: push failed after rebase\n${formatGitError(retryResult)}`,
-			"error",
-		);
+		progress.fail("Push failed after rebase", formatGitError(retryResult));
 		return;
 	}
-	ctx.ui.notify("pi-git-shortcuts: rebase and push complete", "info");
+	progress.succeed("Rebase and push complete");
 }
