@@ -1,0 +1,54 @@
+{
+	"name": "pi-git-shortcuts",
+	"version": "0.1.0",
+	"description": "Context-clean Git slash commands for the Pi coding agent.",
+	"type": "module",
+	"license": "MIT",
+	"private": false,
+	"keywords": [
+		"pi-package",
+		"pi-extension",
+		"pi",
+		"git",
+		"commit",
+		"push"
+	],
+	"files": [
+		"src",
+		"README.md",
+		"README.zh-CN.md",
+		"LICENSE"
+	],
+	"pi": {
+		"extensions": [
+			"./src/index.ts"
+		]
+	},
+	"scripts": {
+		"check": "biome check . && npm run typecheck && npm test",
+		"format": "biome check --write .",
+		"test": "node --import tsx --test test/*.test.ts",
+		"typecheck": "tsc --noEmit"
+	},
+	"peerDependencies": {
+		"@earendil-works/pi-coding-agent": "*"
+	},
+	"devDependencies": {
+		"@biomejs/biome": "2.5.3",
+		"@earendil-works/pi-coding-agent": "0.80.3",
+		"@types/node": "26.1.1",
+		"tsx": "4.20.6",
+		"typescript": "6.0.3"
+	},
+	"repository": {
+		"type": "git",
+		"url": "git+https://github.com/LuckyYunPeng/pi-git-shortcuts.git"
+	},
+	"bugs": {
+		"url": "https://github.com/LuckyYunPeng/pi-git-shortcuts/issues"
+	},
+	"homepage": "https://github.com/LuckyYunPeng/pi-git-shortcuts#readme",
+	"publishConfig": {
+		"access": "public"
+	}
+}

@@ -1,0 +1,133 @@
+import type {
+	ExtensionContext,
+	ExtensionRuntime,
+	ResourceLoader,
+} from "@earendil-works/pi-coding-agent";
+import {
+	createAgentSession,
+	createExtensionRuntime,
+	SessionManager,
+	SettingsManager,
+} from "@earendil-works/pi-coding-agent";
+
+let runtime: ExtensionRuntime | undefined;
+
+function getRuntime(): ExtensionRuntime {
+	runtime ??= createExtensionRuntime();
+	return runtime;
+}
+
+function createResourceLoader(systemPrompt: string): ResourceLoader {
+	return {
+		getExtensions: () => ({ extensions: [], errors: [], runtime: getRuntime() }),
+		getSkills: () => ({ skills: [], diagnostics: [] }),
+		getPrompts: () => ({ prompts: [], diagnostics: [] }),
+		getThemes: () => ({ themes: [], diagnostics: [] }),
+		getAgentsFiles: () => ({ agentsFiles: [] }),
+		getSystemPrompt: () => systemPrompt,
+		getAppendSystemPrompt: () => [],
+		extendResources: () => {},
+		reload: async () => {},
+	};
+}
+
+async function runIsolatedAgent(
+	ctx: ExtensionContext,
+	cwd: string,
+	systemPrompt: string,
+	prompt: string,
+	tools: string[],
+): Promise<string> {
+	if (!ctx.model) throw new Error("No active model is available");
+
+	const { session } = await createAgentSession({
+		cwd,
+		model: ctx.model,
+		thinkingLevel: "low",
+		modelRegistry: ctx.modelRegistry,
+		resourceLoader: createResourceLoader(systemPrompt),
+		sessionManager: SessionManager.inMemory(cwd),
+		settingsManager: SettingsManager.inMemory({ compaction: { enabled: false } }),
+		tools,
+	});
+	const output: string[] = [];
+	const unsubscribe = session.subscribe((event) => {
+		if (event.type !== "message_end" || event.message.role !== "assistant") return;
+		for (const part of event.message.content) {
+			if (part.type === "text" && part.text.trim()) output.push(part.text);
+		}
+	});
+
+	try {
+		await session.prompt(prompt);
+	} finally {
+		unsubscribe();
+	}
+
+	return output.join("\n\n").trim();
+}
+
+export async function generateCommitMessage(
+	ctx: ExtensionContext,
+	cwd: string,
+	diffStat: string,
+	diff: string,
+	instructions: string,
+): Promise<string> {
+	const instructionBlock = instructions.trim()
+		? `\nUser requirements:\n${instructions.trim()}\n`
+		: "";
+	const prompt = [
+		"Generate one Conventional Commit message for the staged changes below.",
+		instructionBlock,
+		"Requirements:",
+		"- Format the first line as type(scope): description or type: description.",
+		"- Use an imperative description and keep the first line at most 72 characters.",
+		"- Add a concise body only when it provides useful context.",
+		"- Output only the commit message, without Markdown fences or commentary.",
+		"",
+		"Diff stat:",
+		diffStat,
+		"",
+		"Staged diff:",
+		diff.slice(0, 50_000),
+		diff.length > 50_000 ? "\n[diff truncated]" : "",
+	].join("\n");
+
+	return runIsolatedAgent(
+		ctx,
+		cwd,
+		"You write precise Conventional Commit messages from staged Git diffs.",
+		prompt,
+		[],
+	);
+}
+
+export async function resolveRebaseConflicts(
+	ctx: ExtensionContext,
+	cwd: string,
+	conflictedFiles: string[],
+): Promise<string> {
+	const tools = ["read", "edit", "grep", "find", "ls"];
+	const prompt = [
+		"Resolve the current Git rebase conflicts in the working tree.",
+		"",
+		`Conflicted files:\n${conflictedFiles.map((file) => `- ${file}`).join("\n")}`,
+		"",
+		"Rules:",
+		"- Inspect both sides of every conflict and preserve the intended behavior from each side.",
+		"- Edit only files required to resolve the listed conflicts.",
+		"- Remove every conflict marker: <<<<<<<, =======, and >>>>>>>.",
+		"- Do not run Git commands; the extension controls rebase state.",
+		"- Do not create commits.",
+		"- Finish with a concise summary of the resolutions.",
+	].join("\n");
+
+	return runIsolatedAgent(
+		ctx,
+		cwd,
+		"You resolve Git rebase conflicts carefully using only repository file tools.",
+		prompt,
+		tools,
+	);
+}
