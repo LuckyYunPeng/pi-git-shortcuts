@@ -1,0 +1,49 @@
+import { mkdir, readFile, rename, writeFile } from "node:fs/promises";
+import { dirname, join } from "node:path";
+import { getAgentDir } from "@earendil-works/pi-coding-agent";
+
+export type CommitLanguage = "english" | "chinese";
+
+export interface GitShortcutsConfig {
+	commitLanguage: CommitLanguage;
+}
+
+export const DEFAULT_CONFIG: GitShortcutsConfig = {
+	commitLanguage: "english",
+};
+
+export function getConfigPath(): string {
+	return join(getAgentDir(), "pi-git-shortcuts.json");
+}
+
+export function normalizeConfig(value: unknown): GitShortcutsConfig {
+	if (!value || typeof value !== "object" || Array.isArray(value)) return { ...DEFAULT_CONFIG };
+	const language = (value as { commitLanguage?: unknown }).commitLanguage;
+	return {
+		commitLanguage: language === "chinese" || language === "english" ? language : "english",
+	};
+}
+
+export async function readConfig(configPath = getConfigPath()): Promise<GitShortcutsConfig> {
+	try {
+		return normalizeConfig(JSON.parse(await readFile(configPath, "utf8")));
+	} catch {
+		return { ...DEFAULT_CONFIG };
+	}
+}
+
+export async function writeConfig(
+	config: GitShortcutsConfig,
+	configPath = getConfigPath(),
+): Promise<void> {
+	await mkdir(dirname(configPath), { recursive: true });
+	const tempPath = `${configPath}.${process.pid}.tmp`;
+	await writeFile(tempPath, `${JSON.stringify(normalizeConfig(config), null, 2)}\n`, "utf8");
+	await rename(tempPath, configPath);
+}
+
+export function commitLanguageInstruction(language: CommitLanguage): string {
+	return language === "chinese"
+		? "Write the commit description and body in Simplified Chinese. Keep the Conventional Commit type and optional scope in English."
+		: "Write the entire commit message in English.";
+}

@@ -73,6 +73,7 @@ export async function generateCommitMessage(
 	diffStat: string,
 	diff: string,
 	instructions: string,
+	languageInstruction: string,
 ): Promise<string> {
 	const instructionBlock = instructions.trim()
 		? `\nUser requirements:\n${instructions.trim()}\n`
@@ -81,6 +82,7 @@ export async function generateCommitMessage(
 		"Generate one Conventional Commit message for the staged changes below.",
 		instructionBlock,
 		"Requirements:",
+		`- ${languageInstruction}`,
 		"- Format the first line as type(scope): description or type: description.",
 		"- Use an imperative description and keep the first line at most 72 characters.",
 		"- Add a concise body only when it provides useful context.",

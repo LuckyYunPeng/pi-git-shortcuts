@@ -27,6 +27,23 @@
 /cp 准确描述这次认证修复
 ```
 
+### `/git-shortcuts-config`
+
+打开模型生成 commit message 的语言选择器：
+
+```text
+English
+简体中文
+```
+
+默认使用英文。选择会立即生效，并全局持久化到：
+
+```text
+~/.pi/agent/pi-git-shortcuts.json
+```
+
+选择中文时，Conventional Commit 的 type 和可选 scope 保持英文，description 和 body 使用简体中文。
+
 push 流程：
 
 1. 复用 `/commit` 流程。
@@ -42,10 +59,11 @@ push 流程：
 
 该插件刻意采用 command-only 设计：
 
-- 仅通过 `pi.registerCommand()` 注册 `/commit` 和 `/cp`。
+- 仅通过 `pi.registerCommand()` 注册 `/commit`、`/cp` 和 `/git-shortcuts-config`。
 - 不注册 LLM tool。
 - 不调用 `sendUserMessage()` 或 `sendMessage()`。
 - 不向 session 追加 entry。
+- 偏好设置写入独立 JSON 配置文件，而不是 session。
 - 模型任务使用 `SessionManager.inMemory()`。
 - 进度和结果仅通过 Pi UI 通知显示。
 
@@ -97,6 +115,7 @@ pi-git-shortcuts/
 ├── src/
 │   ├── agent.ts      # 隔离模型会话
 │   ├── commands.ts   # /commit 和 /cp 流程
+│   ├── config.ts     # 持久化 commit message 语言偏好
 │   ├── git.ts        # Git helper 和校验
 │   └── index.ts      # Pi extension 入口
 ├── test/

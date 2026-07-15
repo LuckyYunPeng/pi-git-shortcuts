@@ -2,7 +2,7 @@ import assert from "node:assert/strict";
 import test from "node:test";
 import gitShortcuts from "../src/index.js";
 
-test("registers command-only shortcuts without main-session side effects", () => {
+test("registers command-only shortcuts without main-session side effects", async () => {
 	const commands = new Map<string, unknown>();
 	const tools: unknown[] = [];
 	const messages: unknown[] = [];
@@ -25,9 +25,9 @@ test("registers command-only shortcuts without main-session side effects", () =>
 		},
 	};
 
-	gitShortcuts(pi as never);
+	await gitShortcuts(pi as never);
 
-	assert.deepEqual([...commands.keys()], ["commit", "cp"]);
+	assert.deepEqual([...commands.keys()], ["commit", "cp", "git-shortcuts-config"]);
 	assert.deepEqual(tools, []);
 	assert.deepEqual(messages, []);
 	assert.deepEqual(entries, []);

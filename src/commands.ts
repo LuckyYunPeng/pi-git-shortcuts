@@ -3,6 +3,7 @@ import { tmpdir } from "node:os";
 import { join } from "node:path";
 import type { ExtensionAPI, ExtensionContext } from "@earendil-works/pi-coding-agent";
 import { generateCommitMessage, resolveRebaseConflicts } from "./agent.js";
+import { type CommitLanguage, commitLanguageInstruction } from "./config.js";
 import {
 	createGitClient,
 	formatGitError,
@@ -39,6 +40,7 @@ export async function commitChanges(
 	pi: ExtensionAPI,
 	ctx: ExtensionContext,
 	instructions = "",
+	commitLanguage: CommitLanguage = "english",
 ): Promise<CommitResult | undefined> {
 	let git = createGitClient(pi, ctx.cwd);
 	const repositoryRoot = await getRepositoryRoot(git);
@@ -77,6 +79,7 @@ export async function commitChanges(
 				statResult.stdout,
 				diffResult.stdout,
 				instructions,
+				commitLanguageInstruction(commitLanguage),
 			),
 		);
 	} catch (error) {
@@ -182,8 +185,9 @@ export async function commitAndPush(
 	pi: ExtensionAPI,
 	ctx: ExtensionContext,
 	instructions = "",
+	commitLanguage: CommitLanguage = "english",
 ): Promise<void> {
-	const commitResult = await commitChanges(pi, ctx, instructions);
+	const commitResult = await commitChanges(pi, ctx, instructions, commitLanguage);
 	if (!commitResult) return;
 
 	const git = createGitClient(pi, commitResult.repositoryRoot);

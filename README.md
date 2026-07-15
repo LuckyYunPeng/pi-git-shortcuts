@@ -27,6 +27,23 @@ Commits changes and pushes the current branch.
 /cp describe the authentication fix precisely
 ```
 
+### `/git-shortcuts-config`
+
+Opens a language selector for model-generated commit messages:
+
+```text
+English
+简体中文
+```
+
+English is the default. The selection applies immediately and is persisted globally in:
+
+```text
+~/.pi/agent/pi-git-shortcuts.json
+```
+
+For Chinese output, the Conventional Commit type and optional scope remain in English while the description and body use Simplified Chinese.
+
 The push workflow:
 
 1. Reuses the `/commit` workflow.
@@ -42,10 +59,11 @@ If automatic conflict resolution fails, the rebase is left in progress for manua
 
 The extension is intentionally command-only:
 
-- Registers `/commit` and `/cp` with `pi.registerCommand()`.
+- Registers `/commit`, `/cp`, and `/git-shortcuts-config` with `pi.registerCommand()`.
 - Does not register an LLM tool.
 - Does not call `sendUserMessage()` or `sendMessage()`.
 - Does not append session entries.
+- Persists preferences in a standalone JSON config file, not in the session.
 - Uses `SessionManager.inMemory()` for model work.
 - Shows progress and results only through Pi UI notifications.
 
@@ -97,6 +115,7 @@ pi-git-shortcuts/
 ├── src/
 │   ├── agent.ts      # isolated model sessions
 │   ├── commands.ts   # /commit and /cp workflows
+│   ├── config.ts     # persistent commit-language preference
 │   ├── git.ts        # Git helpers and validation
 │   └── index.ts      # Pi extension entrypoint
 ├── test/
