@@ -131,7 +131,7 @@ export class GitShortcutProgress {
 		this.state.steps.push({ label, detail, state: "done" });
 		this.state.status = "done";
 		this.recordResult("success", label, detail);
-		this.finish(6000);
+		this.finish(3000);
 		if (!this.ctx.hasUI)
 			this.ctx.ui.notify(`pi-git-shortcuts: ${label}${detail ? `\n${detail}` : ""}`, "info");
 	}
@@ -141,7 +141,7 @@ export class GitShortcutProgress {
 		this.state.steps.push({ label, detail, state: "error" });
 		this.state.status = "error";
 		this.recordResult("error", label, detail);
-		this.finish(12_000);
+		this.finish(3000);
 		this.ctx.ui.notify(`pi-git-shortcuts: ${label}${detail ? `\n${detail}` : ""}`, "error");
 	}
 
