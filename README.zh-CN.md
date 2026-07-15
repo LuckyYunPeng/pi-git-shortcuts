@@ -6,6 +6,13 @@
 
 `pi-git-shortcuts` 使用隔离的内存 Agent Session 生成 commit message 和解决 rebase 冲突。模型可以协助 Git 操作，但相关 prompt、tool call 和结果都不会进入主会话上下文。
 
+- `/commit`：暂存全部变更并创建 AI 生成的 Conventional Commit。
+- `/push`：只推送当前分支，不创建 commit。
+- `/cp`：一次完成 commit 和 push。
+- `/git-shortcuts-config`：选择英文或简体中文 commit message。
+- non-fast-forward push 可自动 rebase，并由仅具备文件工具的隔离 Agent 解决冲突。
+- 临时进度面板展示全部 Git 和模型阶段，不污染 session。
+
 ## 指令
 
 ### `/commit [附加要求]`
@@ -112,6 +119,12 @@ read, edit, grep, find, ls
 - 冲突解决失败时保留当前 rebase 状态，不执行破坏性恢复。
 
 ## 安装
+
+### npm
+
+```bash
+pi install npm:pi-git-shortcuts
+```
 
 ### GitHub
 

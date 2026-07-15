@@ -6,6 +6,13 @@ Context-clean Git slash commands for the [Pi coding agent](https://pi.dev).
 
 `pi-git-shortcuts` uses isolated in-memory agent sessions to generate commit messages and resolve rebase conflicts. The model can help with Git work without adding prompts, tool calls, or results to the main conversation context.
 
+- `/commit`: stage all changes and create an AI-generated Conventional Commit.
+- `/push`: push the current branch without creating a commit.
+- `/cp`: commit and push in one command.
+- `/git-shortcuts-config`: choose English or Simplified Chinese commit messages.
+- Non-fast-forward pushes can rebase and resolve conflicts with an isolated, file-tool-only agent.
+- A transient progress panel shows every Git and model stage without polluting the session.
+
 ## Commands
 
 ### `/commit [instructions]`
@@ -112,6 +119,12 @@ It cannot run shell or Git commands. Rebase state is controlled by the extension
 - Failed conflict resolution leaves the repository recoverable in its current rebase state.
 
 ## Install
+
+### npm
+
+```bash
+pi install npm:pi-git-shortcuts
+```
 
 ### GitHub
 

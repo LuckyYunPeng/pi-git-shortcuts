@@ -1,9 +1,10 @@
 {
 	"name": "pi-git-shortcuts",
 	"version": "0.1.0",
-	"description": "Context-clean Git slash commands for the Pi coding agent.",
+	"description": "AI-assisted Git slash commands for Pi with isolated commit generation, push workflows, and conflict resolution.",
 	"type": "module",
 	"license": "MIT",
+	"author": "LuckyYunPeng",
 	"private": false,
 	"keywords": [
 		"pi-package",
@@ -11,7 +12,11 @@
 		"pi",
 		"git",
 		"commit",
-		"push"
+		"push",
+		"conventional-commits",
+		"rebase",
+		"conflict-resolution",
+		"context-isolation"
 	],
 	"files": [
 		"src",
@@ -23,6 +28,9 @@
 		"extensions": [
 			"./src/index.ts"
 		]
+	},
+	"engines": {
+		"node": ">=18"
 	},
 	"scripts": {
 		"check": "biome check . && npm run typecheck && npm test",
