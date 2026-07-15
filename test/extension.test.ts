@@ -7,12 +7,16 @@ test("registers command-only shortcuts without main-session side effects", async
 	const tools: unknown[] = [];
 	const messages: unknown[] = [];
 	const entries: unknown[] = [];
+	const entryRenderers = new Map<string, unknown>();
 	const pi = {
 		registerCommand(name: string, command: unknown) {
 			commands.set(name, command);
 		},
 		registerTool(tool: unknown) {
 			tools.push(tool);
+		},
+		registerEntryRenderer(type: string, renderer: unknown) {
+			entryRenderers.set(type, renderer);
 		},
 		sendUserMessage(message: unknown) {
 			messages.push(message);
@@ -29,6 +33,7 @@ test("registers command-only shortcuts without main-session side effects", async
 
 	assert.deepEqual([...commands.keys()], ["commit", "cp", "push", "git-shortcuts-config"]);
 	assert.deepEqual(tools, []);
+	assert.deepEqual([...entryRenderers.keys()], ["pi-git-shortcuts-result"]);
 	assert.deepEqual(messages, []);
 	assert.deepEqual(entries, []);
 });

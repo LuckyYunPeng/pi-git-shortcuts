@@ -75,7 +75,9 @@ While `/commit`, `/cp`, or `/push` is running, a temporary TUI-only panel appear
 
 The panel advances through commit, push, rebase, and conflict-resolution stages. On success it shows the commit hash or final push result and hides after 6 seconds. Errors remain visible longer and include recovery details.
 
-The panel is rendered with `setWidget()` and does not enter the main conversation or model context.
+After the panel closes, one compact result remains in the chat history. It is stored as a Pi custom entry so it survives session reloads, but custom entries are excluded from the LLM context and consume no model context tokens. Expand the entry to see its duration and timestamp.
+
+The progress panel is rendered with `setWidget()`. Neither progress updates nor the durable result are sent to the model.
 
 The push workflow:
 
@@ -119,6 +121,8 @@ It cannot run shell or Git commands. Rebase state is controlled by the extension
 - Failed conflict resolution leaves the repository recoverable in its current rebase state.
 
 ## Install
+
+Requires Pi `0.80.7` or newer.
 
 ### npm
 

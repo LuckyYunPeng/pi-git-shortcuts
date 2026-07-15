@@ -1,11 +1,13 @@
 import type { ExtensionAPI } from "@earendil-works/pi-coding-agent";
 import { commitAndPush, commitChanges, pushChanges } from "./commands.js";
 import { type CommitLanguage, getConfigPath, readConfig, writeConfig } from "./config.js";
+import { registerResultRenderer } from "./result.js";
 
 const LANGUAGE_OPTIONS = ["English", "简体中文"] as const;
 
 export default async function gitShortcuts(pi: ExtensionAPI) {
 	let config = await readConfig();
+	registerResultRenderer(pi);
 
 	pi.registerCommand("commit", {
 		description: "Generate a commit message in an isolated agent and commit all changes",

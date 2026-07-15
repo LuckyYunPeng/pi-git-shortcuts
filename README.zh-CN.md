@@ -75,7 +75,9 @@ English
 
 面板会依次展示 commit、push、rebase 和冲突解决阶段。成功后显示 commit hash 或最终 push 结果，并在 6 秒后自动收起；错误状态会保留更久，并显示恢复信息。
 
-该面板通过 `setWidget()` 渲染，不会进入主会话或模型上下文。
+面板收起后，聊天记录中会保留一条简洁结果。该结果以 Pi custom entry 保存，因此重新打开 session 后仍然可见；custom entry 不参与 LLM context，也不占用模型上下文 token。展开结果可查看耗时和时间戳。
+
+进度面板通过 `setWidget()` 渲染。进度更新和持久结果都不会发送给模型。
 
 push 流程：
 
@@ -119,6 +121,8 @@ read, edit, grep, find, ls
 - 冲突解决失败时保留当前 rebase 状态，不执行破坏性恢复。
 
 ## 安装
+
+需要 Pi `0.80.7` 或更高版本。
 
 ### npm
 

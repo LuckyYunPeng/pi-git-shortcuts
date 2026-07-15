@@ -19,6 +19,15 @@ export interface ProgressState {
 	steps: ProgressStep[];
 }
 
+export interface ProgressResult {
+	operation: ProgressState["operation"];
+	status: "success" | "error";
+	label: string;
+	detail?: string;
+	durationMs: number;
+	timestamp: number;
+}
+
 function elapsed(startedAt: number): string {
 	const seconds = Math.max(0, Math.floor((Date.now() - startedAt) / 1000));
 	return seconds < 60 ? `${seconds}s` : `${Math.floor(seconds / 60)}m ${seconds % 60}s`;
@@ -88,6 +97,7 @@ export class GitShortcutProgress {
 	constructor(
 		private readonly ctx: ExtensionContext,
 		operation: ProgressState["operation"],
+		private readonly onResult?: (result: ProgressResult) => void,
 	) {
 		this.state = { operation, startedAt: Date.now(), status: "running", steps: [] };
 		if (!ctx.hasUI) return;
@@ -120,6 +130,7 @@ export class GitShortcutProgress {
 		this.finishActive("done");
 		this.state.steps.push({ label, detail, state: "done" });
 		this.state.status = "done";
+		this.recordResult("success", label, detail);
 		this.finish(6000);
 		if (!this.ctx.hasUI)
 			this.ctx.ui.notify(`pi-git-shortcuts: ${label}${detail ? `\n${detail}` : ""}`, "info");
@@ -129,6 +140,7 @@ export class GitShortcutProgress {
 		this.finishActive("error");
 		this.state.steps.push({ label, detail, state: "error" });
 		this.state.status = "error";
+		this.recordResult("error", label, detail);
 		this.finish(12_000);
 		this.ctx.ui.notify(`pi-git-shortcuts: ${label}${detail ? `\n${detail}` : ""}`, "error");
 	}
@@ -147,6 +159,17 @@ export class GitShortcutProgress {
 				return;
 			}
 		}
+	}
+
+	private recordResult(status: ProgressResult["status"], label: string, detail?: string): void {
+		this.onResult?.({
+			operation: this.state.operation,
+			status,
+			label,
+			detail,
+			durationMs: Date.now() - this.state.startedAt,
+			timestamp: Date.now(),
+		});
 	}
 
 	private finish(hideAfterMs: number): void {

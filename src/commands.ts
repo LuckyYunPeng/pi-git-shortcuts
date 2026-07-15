@@ -18,11 +18,20 @@ import {
 	isNonFastForwardError,
 	normalizeCommitMessage,
 } from "./git.js";
-import { GitShortcutProgress } from "./progress.js";
+import { GitShortcutProgress, type ProgressState } from "./progress.js";
+import { appendResult } from "./result.js";
 
 interface CommitResult {
 	created: boolean;
 	repositoryRoot: string;
+}
+
+function createProgress(
+	pi: ExtensionAPI,
+	ctx: ExtensionContext,
+	operation: ProgressState["operation"],
+): GitShortcutProgress {
+	return new GitShortcutProgress(ctx, operation, (result) => appendResult(pi, result));
 }
 
 async function commitWithMessageFile(git: GitClient, message: string): Promise<void> {
@@ -42,7 +51,7 @@ export async function commitChanges(
 	ctx: ExtensionContext,
 	instructions = "",
 	commitLanguage: CommitLanguage = "english",
-	progress = new GitShortcutProgress(ctx, "commit"),
+	progress = createProgress(pi, ctx, "commit"),
 	finalizeProgress = true,
 ): Promise<CommitResult | undefined> {
 	progress.step("Checking repository");
@@ -241,7 +250,7 @@ async function pushRepository(
 }
 
 export async function pushChanges(pi: ExtensionAPI, ctx: ExtensionContext): Promise<void> {
-	const progress = new GitShortcutProgress(ctx, "push");
+	const progress = createProgress(pi, ctx, "push");
 	progress.step("Checking repository");
 	let git = createGitClient(pi, ctx.cwd);
 	const repositoryRoot = await getRepositoryRoot(git);
@@ -260,7 +269,7 @@ export async function commitAndPush(
 	instructions = "",
 	commitLanguage: CommitLanguage = "english",
 ): Promise<void> {
-	const progress = new GitShortcutProgress(ctx, "commit + push");
+	const progress = createProgress(pi, ctx, "commit + push");
 	const commitResult = await commitChanges(pi, ctx, instructions, commitLanguage, progress, false);
 	if (!commitResult) return;
 
