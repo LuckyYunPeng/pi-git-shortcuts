@@ -27,7 +27,7 @@ test("registers command-only shortcuts without main-session side effects", async
 
 	await gitShortcuts(pi as never);
 
-	assert.deepEqual([...commands.keys()], ["commit", "cp", "git-shortcuts-config"]);
+	assert.deepEqual([...commands.keys()], ["commit", "cp", "push", "git-shortcuts-config"]);
 	assert.deepEqual(tools, []);
 	assert.deepEqual(messages, []);
 	assert.deepEqual(entries, []);

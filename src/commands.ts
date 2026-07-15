@@ -193,17 +193,12 @@ async function rebaseFromUpstream(
 	await continueRebaseWithConflictResolution(git, ctx, repositoryRoot, progress);
 }
 
-export async function commitAndPush(
-	pi: ExtensionAPI,
+async function pushRepository(
+	git: GitClient,
 	ctx: ExtensionContext,
-	instructions = "",
-	commitLanguage: CommitLanguage = "english",
+	repositoryRoot: string,
+	progress: GitShortcutProgress,
 ): Promise<void> {
-	const progress = new GitShortcutProgress(ctx, "commit + push");
-	const commitResult = await commitChanges(pi, ctx, instructions, commitLanguage, progress, false);
-	if (!commitResult) return;
-
-	const git = createGitClient(pi, commitResult.repositoryRoot);
 	progress.step("Pushing current branch");
 	let pushResult: Awaited<ReturnType<GitClient["run"]>>;
 	try {
@@ -226,7 +221,7 @@ export async function commitAndPush(
 	progress.warning("Remote branch is ahead", "starting rebase");
 	progress.step("Rebasing onto upstream");
 	try {
-		await rebaseFromUpstream(git, ctx, commitResult.repositoryRoot, progress);
+		await rebaseFromUpstream(git, ctx, repositoryRoot, progress);
 	} catch (error) {
 		const detail = error instanceof Error ? error.message : String(error);
 		progress.fail(
@@ -243,4 +238,32 @@ export async function commitAndPush(
 		return;
 	}
 	progress.succeed("Rebase and push complete");
+}
+
+export async function pushChanges(pi: ExtensionAPI, ctx: ExtensionContext): Promise<void> {
+	const progress = new GitShortcutProgress(ctx, "push");
+	progress.step("Checking repository");
+	let git = createGitClient(pi, ctx.cwd);
+	const repositoryRoot = await getRepositoryRoot(git);
+	if (!repositoryRoot) {
+		progress.fail("Not inside a Git repository");
+		return;
+	}
+
+	git = createGitClient(pi, repositoryRoot);
+	await pushRepository(git, ctx, repositoryRoot, progress);
+}
+
+export async function commitAndPush(
+	pi: ExtensionAPI,
+	ctx: ExtensionContext,
+	instructions = "",
+	commitLanguage: CommitLanguage = "english",
+): Promise<void> {
+	const progress = new GitShortcutProgress(ctx, "commit + push");
+	const commitResult = await commitChanges(pi, ctx, instructions, commitLanguage, progress, false);
+	if (!commitResult) return;
+
+	const git = createGitClient(pi, commitResult.repositoryRoot);
+	await pushRepository(git, ctx, commitResult.repositoryRoot, progress);
 }

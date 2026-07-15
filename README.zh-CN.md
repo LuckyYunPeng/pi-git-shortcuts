@@ -27,6 +27,16 @@
 /cp 准确描述这次认证修复
 ```
 
+### `/push`
+
+推送当前分支，不暂存变更，也不创建 commit。
+
+```text
+/push
+```
+
+没有 upstream 时会自动创建；远端分支领先时，复用 `/cp` 的 rebase 和隔离冲突解决流程。现有未提交工作区变更不会被修改，除非 Git 本身因为这些变更而拒绝 rebase。
+
 ### `/git-shortcuts-config`
 
 打开模型生成 commit message 的语言选择器：
@@ -46,7 +56,7 @@ English
 
 ## 进度界面
 
-执行 `/commit` 或 `/cp` 时，编辑器上方会出现临时的 TUI 进度面板：
+执行 `/commit`、`/cp` 或 `/push` 时，编辑器上方会出现临时的 TUI 进度面板：
 
 ```text
 ◆ pi-git-shortcuts  commit + push  3s
@@ -75,7 +85,7 @@ push 流程：
 
 该插件刻意采用 command-only 设计：
 
-- 仅通过 `pi.registerCommand()` 注册 `/commit`、`/cp` 和 `/git-shortcuts-config`。
+- 仅通过 `pi.registerCommand()` 注册 `/commit`、`/cp`、`/push` 和 `/git-shortcuts-config`。
 - 不注册 LLM tool。
 - 不调用 `sendUserMessage()` 或 `sendMessage()`。
 - 不向 session 追加 entry。
@@ -130,7 +140,7 @@ npm run check
 pi-git-shortcuts/
 ├── src/
 │   ├── agent.ts      # 隔离模型会话
-│   ├── commands.ts   # /commit 和 /cp 流程
+│   ├── commands.ts   # /commit、/cp 和 /push 流程
 │   ├── config.ts     # 持久化 commit message 语言偏好
 │   ├── git.ts        # Git helper 和校验
 │   ├── progress.ts   # 临时 TUI 进度面板

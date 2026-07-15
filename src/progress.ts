@@ -13,7 +13,7 @@ export interface ProgressStep {
 }
 
 export interface ProgressState {
-	operation: "commit" | "commit + push";
+	operation: "commit" | "push" | "commit + push";
 	startedAt: number;
 	status: "running" | "done" | "error";
 	steps: ProgressStep[];

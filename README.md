@@ -27,6 +27,16 @@ Commits changes and pushes the current branch.
 /cp describe the authentication fix precisely
 ```
 
+### `/push`
+
+Pushes the current branch without staging changes or creating a commit.
+
+```text
+/push
+```
+
+It creates an upstream when needed and uses the same rebase and isolated conflict-resolution workflow as `/cp` when the remote branch is ahead. Existing uncommitted working-tree changes are left untouched unless Git itself prevents the rebase.
+
 ### `/git-shortcuts-config`
 
 Opens a language selector for model-generated commit messages:
@@ -46,7 +56,7 @@ For Chinese output, the Conventional Commit type and optional scope remain in En
 
 ## Progress UI
 
-While `/commit` or `/cp` is running, a temporary TUI-only panel appears above the editor:
+While `/commit`, `/cp`, or `/push` is running, a temporary TUI-only panel appears above the editor:
 
 ```text
 ◆ pi-git-shortcuts  commit + push  3s
@@ -75,7 +85,7 @@ If automatic conflict resolution fails, the rebase is left in progress for manua
 
 The extension is intentionally command-only:
 
-- Registers `/commit`, `/cp`, and `/git-shortcuts-config` with `pi.registerCommand()`.
+- Registers `/commit`, `/cp`, `/push`, and `/git-shortcuts-config` with `pi.registerCommand()`.
 - Does not register an LLM tool.
 - Does not call `sendUserMessage()` or `sendMessage()`.
 - Does not append session entries.
@@ -130,7 +140,7 @@ npm run check
 pi-git-shortcuts/
 ├── src/
 │   ├── agent.ts      # isolated model sessions
-│   ├── commands.ts   # /commit and /cp workflows
+│   ├── commands.ts   # /commit, /cp, and /push workflows
 │   ├── config.ts     # persistent commit-language preference
 │   ├── git.ts        # Git helpers and validation
 │   ├── progress.ts   # transient TUI progress panel
