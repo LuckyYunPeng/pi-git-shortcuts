@@ -7,6 +7,7 @@
 `pi-git-shortcuts` 使用隔离的内存 Agent Session 生成 commit message 和解决 rebase 冲突。模型可以协助 Git 操作，但相关 prompt、tool call 和结果都不会进入主会话上下文。
 
 - `/commit`：暂存全部变更并创建 AI 生成的 Conventional Commit。
+- `/pull`：拉取并 rebase 当前分支，冲突时由隔离 Agent 协助解决。
 - `/push`：只推送当前分支，不创建 commit。
 - `/cp`：一次完成 commit 和 push。
 - `/git-shortcuts-config`：选择英文或简体中文 commit message。
@@ -33,6 +34,16 @@
 /cp
 /cp 准确描述这次认证修复
 ```
+
+### `/pull`
+
+拉取并 rebase 当前分支。如果 rebase 出现冲突，会启动仅具备文件工具的隔离 Agent 解决冲突，然后由 extension 继续 rebase。
+
+```text
+/pull
+```
+
+存在 upstream 时使用已配置的 upstream；没有 upstream 时拉取 `origin/<当前分支>`，但不创建 tracking 配置。该命令不会自动 stash 未提交变更。如果 Git 因本地修改拒绝 pull，命令会停止并保持工作区不变。
 
 ### `/push`
 
@@ -63,7 +74,7 @@ English
 
 ## 进度界面
 
-执行 `/commit`、`/cp` 或 `/push` 时，编辑器上方会出现临时的 TUI 进度面板：
+执行 `/commit`、`/cp`、`/pull` 或 `/push` 时，编辑器上方会出现临时的 TUI 进度面板：
 
 ```text
 ◆ pi-git-shortcuts  commit + push  3s
@@ -94,7 +105,7 @@ push 流程：
 
 该插件刻意采用 command-only 设计：
 
-- 仅通过 `pi.registerCommand()` 注册 `/commit`、`/cp`、`/push` 和 `/git-shortcuts-config`。
+- 仅通过 `pi.registerCommand()` 注册 `/commit`、`/cp`、`/pull`、`/push` 和 `/git-shortcuts-config`。
 - 不注册 LLM tool。
 - 不调用 `sendUserMessage()` 或 `sendMessage()`。
 - 不向 session 追加 entry。
@@ -157,7 +168,7 @@ npm run check
 pi-git-shortcuts/
 ├── src/
 │   ├── agent.ts      # 隔离模型会话
-│   ├── commands.ts   # /commit、/cp 和 /push 流程
+│   ├── commands.ts   # /commit、/cp、/pull 和 /push 流程
 │   ├── config.ts     # 持久化 commit message 语言偏好
 │   ├── git.ts        # Git helper 和校验
 │   ├── progress.ts   # 临时 TUI 进度面板

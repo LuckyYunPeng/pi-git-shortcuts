@@ -1,5 +1,5 @@
 import type { ExtensionAPI } from "@earendil-works/pi-coding-agent";
-import { commitAndPush, commitChanges, pushChanges } from "./commands.js";
+import { commitAndPush, commitChanges, pullChanges, pushChanges } from "./commands.js";
 import { type CommitLanguage, getConfigPath, readConfig, writeConfig } from "./config.js";
 import { registerResultRenderer } from "./result.js";
 
@@ -20,6 +20,13 @@ export default async function gitShortcuts(pi: ExtensionAPI) {
 		description: "Commit all changes and push the current branch",
 		handler: async (args, ctx) => {
 			await commitAndPush(pi, ctx, args, config.commitLanguage);
+		},
+	});
+
+	pi.registerCommand("pull", {
+		description: "Pull and rebase the current branch, resolving conflicts in an isolated agent",
+		handler: async (_args, ctx) => {
+			await pullChanges(pi, ctx);
 		},
 	});
 

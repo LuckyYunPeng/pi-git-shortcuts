@@ -7,6 +7,7 @@ Context-clean Git slash commands for the [Pi coding agent](https://pi.dev).
 `pi-git-shortcuts` uses isolated in-memory agent sessions to generate commit messages and resolve rebase conflicts. The model can help with Git work without adding prompts, tool calls, or results to the main conversation context.
 
 - `/commit`: stage all changes and create an AI-generated Conventional Commit.
+- `/pull`: pull and rebase the current branch, resolving conflicts with an isolated agent.
 - `/push`: push the current branch without creating a commit.
 - `/cp`: commit and push in one command.
 - `/git-shortcuts-config`: choose English or Simplified Chinese commit messages.
@@ -33,6 +34,16 @@ Commits changes and pushes the current branch.
 /cp
 /cp describe the authentication fix precisely
 ```
+
+### `/pull`
+
+Pulls and rebases the current branch. If the rebase conflicts, an isolated file-tool-only agent resolves the conflicts and the extension continues the rebase.
+
+```text
+/pull
+```
+
+It uses the configured upstream when available. Without an upstream, it pulls `origin/<current-branch>` without creating tracking configuration. It does not automatically stash uncommitted changes. If Git rejects the pull because of local changes, the command stops and leaves the working tree untouched.
 
 ### `/push`
 
@@ -63,7 +74,7 @@ For Chinese output, the Conventional Commit type and optional scope remain in En
 
 ## Progress UI
 
-While `/commit`, `/cp`, or `/push` is running, a temporary TUI-only panel appears above the editor:
+While `/commit`, `/cp`, `/pull`, or `/push` is running, a temporary TUI-only panel appears above the editor:
 
 ```text
 ◆ pi-git-shortcuts  commit + push  3s
@@ -94,7 +105,7 @@ If automatic conflict resolution fails, the rebase is left in progress for manua
 
 The extension is intentionally command-only:
 
-- Registers `/commit`, `/cp`, `/push`, and `/git-shortcuts-config` with `pi.registerCommand()`.
+- Registers `/commit`, `/cp`, `/pull`, `/push`, and `/git-shortcuts-config` with `pi.registerCommand()`.
 - Does not register an LLM tool.
 - Does not call `sendUserMessage()` or `sendMessage()`.
 - Does not append session entries.
@@ -157,7 +168,7 @@ npm run check
 pi-git-shortcuts/
 ├── src/
 │   ├── agent.ts      # isolated model sessions
-│   ├── commands.ts   # /commit, /cp, and /push workflows
+│   ├── commands.ts   # /commit, /cp, /pull, and /push workflows
 │   ├── config.ts     # persistent commit-language preference
 │   ├── git.ts        # Git helpers and validation
 │   ├── progress.ts   # transient TUI progress panel

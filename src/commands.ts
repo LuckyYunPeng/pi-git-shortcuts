@@ -182,6 +182,14 @@ async function continueRebaseWithConflictResolution(
 	throw new Error("rebase exceeded 20 conflict-resolution rounds");
 }
 
+class RebaseConflictResolutionError extends Error {
+	constructor(cause: unknown) {
+		const message = cause instanceof Error ? cause.message : String(cause);
+		super(message, { cause });
+		this.name = "RebaseConflictResolutionError";
+	}
+}
+
 async function rebaseFromUpstream(
 	git: GitClient,
 	ctx: ExtensionContext,
@@ -199,7 +207,11 @@ async function rebaseFromUpstream(
 	}
 	if (pullResult.code === 0) return;
 	if ((await getConflictedFiles(git)).length === 0) throw new Error(formatGitError(pullResult));
-	await continueRebaseWithConflictResolution(git, ctx, repositoryRoot, progress);
+	try {
+		await continueRebaseWithConflictResolution(git, ctx, repositoryRoot, progress);
+	} catch (error) {
+		throw new RebaseConflictResolutionError(error);
+	}
 }
 
 async function pushRepository(
@@ -233,9 +245,10 @@ async function pushRepository(
 		await rebaseFromUpstream(git, ctx, repositoryRoot, progress);
 	} catch (error) {
 		const detail = error instanceof Error ? error.message : String(error);
+		const conflictResolutionFailed = error instanceof RebaseConflictResolutionError;
 		progress.fail(
-			"Automatic rebase resolution failed",
-			`${detail}\nRebase left in progress for manual recovery.`,
+			conflictResolutionFailed ? "Automatic rebase resolution failed" : "Rebase failed",
+			conflictResolutionFailed ? `${detail}\nRebase left in progress for manual recovery.` : detail,
 		);
 		return;
 	}
@@ -247,6 +260,36 @@ async function pushRepository(
 		return;
 	}
 	progress.succeed("Rebase and push complete");
+}
+
+export async function pullChanges(pi: ExtensionAPI, ctx: ExtensionContext): Promise<void> {
+	const progress = createProgress(pi, ctx, "pull");
+	progress.step("Checking repository");
+	let git = createGitClient(pi, ctx.cwd);
+	const repositoryRoot = await getRepositoryRoot(git);
+	if (!repositoryRoot) {
+		progress.fail("Not inside a Git repository");
+		return;
+	}
+
+	git = createGitClient(pi, repositoryRoot);
+	progress.step("Rebasing onto upstream", "git pull --rebase");
+	try {
+		await rebaseFromUpstream(git, ctx, repositoryRoot, progress);
+	} catch (error) {
+		const detail = error instanceof Error ? error.message : String(error);
+		progress.fail(
+			error instanceof RebaseConflictResolutionError
+				? "Automatic rebase resolution failed"
+				: "Pull failed",
+			error instanceof RebaseConflictResolutionError
+				? `${detail}\nRebase left in progress for manual recovery.`
+				: detail,
+		);
+		return;
+	}
+
+	progress.succeed("Pull complete");
 }
 
 export async function pushChanges(pi: ExtensionAPI, ctx: ExtensionContext): Promise<void> {
