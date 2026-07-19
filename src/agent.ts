@@ -1,6 +1,7 @@
 import type {
 	ExtensionContext,
 	ExtensionRuntime,
+	ModelRegistry,
 	ResourceLoader,
 } from "@earendil-works/pi-coding-agent";
 import {
@@ -31,18 +32,38 @@ function createResourceLoader(systemPrompt: string): ResourceLoader {
 	};
 }
 
+function resolveModel(
+	ctx: ExtensionContext,
+	configuredModel?: string,
+): NonNullable<ReturnType<ModelRegistry["find"]>> {
+	if (!configuredModel) {
+		if (!ctx.model) throw new Error("No active model is available");
+		return ctx.model;
+	}
+
+	const separator = configuredModel.indexOf("/");
+	if (separator < 1 || separator === configuredModel.length - 1) {
+		throw new Error(`Invalid configured model: ${configuredModel}`);
+	}
+	const model = ctx.modelRegistry.find(
+		configuredModel.slice(0, separator),
+		configuredModel.slice(separator + 1),
+	);
+	if (!model) throw new Error(`Configured model is not available: ${configuredModel}`);
+	return model;
+}
+
 async function runIsolatedAgent(
 	ctx: ExtensionContext,
 	cwd: string,
 	systemPrompt: string,
 	prompt: string,
 	tools: string[],
+	configuredModel?: string,
 ): Promise<string> {
-	if (!ctx.model) throw new Error("No active model is available");
-
 	const { session } = await createAgentSession({
 		cwd,
-		model: ctx.model,
+		model: resolveModel(ctx, configuredModel),
 		thinkingLevel: "low",
 		modelRegistry: ctx.modelRegistry,
 		resourceLoader: createResourceLoader(systemPrompt),
@@ -74,6 +95,7 @@ export async function generateCommitMessage(
 	diff: string,
 	instructions: string,
 	languageInstruction: string,
+	model?: string,
 ): Promise<string> {
 	const instructionBlock = instructions.trim()
 		? `\nUser requirements:\n${instructions.trim()}\n`
@@ -102,6 +124,7 @@ export async function generateCommitMessage(
 		"You write precise Conventional Commit messages from staged Git diffs.",
 		prompt,
 		[],
+		model,
 	);
 }
 
@@ -109,6 +132,7 @@ export async function resolveRebaseConflicts(
 	ctx: ExtensionContext,
 	cwd: string,
 	conflictedFiles: string[],
+	model?: string,
 ): Promise<string> {
 	const tools = ["read", "edit", "grep", "find", "ls"];
 	const prompt = [
@@ -131,5 +155,6 @@ export async function resolveRebaseConflicts(
 		"You resolve Git rebase conflicts carefully using only repository file tools.",
 		prompt,
 		tools,
+		model,
 	);
 }

@@ -53,6 +53,7 @@ export async function commitChanges(
 	commitLanguage: CommitLanguage = "english",
 	progress = createProgress(pi, ctx, "commit"),
 	finalizeProgress = true,
+	model?: string,
 ): Promise<CommitResult | undefined> {
 	progress.step("Checking repository");
 	let git = createGitClient(pi, ctx.cwd);
@@ -99,6 +100,7 @@ export async function commitChanges(
 				diffResult.stdout,
 				instructions,
 				commitLanguageInstruction(commitLanguage),
+				model,
 			),
 		);
 	} catch (error) {
@@ -144,6 +146,7 @@ async function continueRebaseWithConflictResolution(
 	ctx: ExtensionContext,
 	repositoryRoot: string,
 	progress: GitShortcutProgress,
+	model?: string,
 ): Promise<void> {
 	for (let attempt = 0; attempt < 20; attempt++) {
 		const conflictedFiles = await getConflictedFiles(git);
@@ -153,7 +156,7 @@ async function continueRebaseWithConflictResolution(
 			"Resolving rebase conflicts",
 			`${conflictedFiles.length} file(s) · round ${attempt + 1}`,
 		);
-		await resolveRebaseConflicts(ctx, repositoryRoot, conflictedFiles);
+		await resolveRebaseConflicts(ctx, repositoryRoot, conflictedFiles, model);
 
 		const remainingMarkers = await git.run([
 			"grep",
@@ -195,6 +198,7 @@ async function rebaseFromUpstream(
 	ctx: ExtensionContext,
 	repositoryRoot: string,
 	progress: GitShortcutProgress,
+	model?: string,
 ): Promise<void> {
 	const upstream = await getUpstream(git);
 	let pullResult: GitResult;
@@ -208,7 +212,7 @@ async function rebaseFromUpstream(
 	if (pullResult.code === 0) return;
 	if ((await getConflictedFiles(git)).length === 0) throw new Error(formatGitError(pullResult));
 	try {
-		await continueRebaseWithConflictResolution(git, ctx, repositoryRoot, progress);
+		await continueRebaseWithConflictResolution(git, ctx, repositoryRoot, progress, model);
 	} catch (error) {
 		throw new RebaseConflictResolutionError(error);
 	}
@@ -219,6 +223,7 @@ async function pushRepository(
 	ctx: ExtensionContext,
 	repositoryRoot: string,
 	progress: GitShortcutProgress,
+	model?: string,
 ): Promise<void> {
 	progress.step("Pushing current branch");
 	let pushResult: Awaited<ReturnType<GitClient["run"]>>;
@@ -242,7 +247,7 @@ async function pushRepository(
 	progress.warning("Remote branch is ahead", "starting rebase");
 	progress.step("Rebasing onto upstream");
 	try {
-		await rebaseFromUpstream(git, ctx, repositoryRoot, progress);
+		await rebaseFromUpstream(git, ctx, repositoryRoot, progress, model);
 	} catch (error) {
 		const detail = error instanceof Error ? error.message : String(error);
 		const conflictResolutionFailed = error instanceof RebaseConflictResolutionError;
@@ -262,7 +267,11 @@ async function pushRepository(
 	progress.succeed("Rebase and push complete");
 }
 
-export async function pullChanges(pi: ExtensionAPI, ctx: ExtensionContext): Promise<void> {
+export async function pullChanges(
+	pi: ExtensionAPI,
+	ctx: ExtensionContext,
+	model?: string,
+): Promise<void> {
 	const progress = createProgress(pi, ctx, "pull");
 	progress.step("Checking repository");
 	let git = createGitClient(pi, ctx.cwd);
@@ -275,7 +284,7 @@ export async function pullChanges(pi: ExtensionAPI, ctx: ExtensionContext): Prom
 	git = createGitClient(pi, repositoryRoot);
 	progress.step("Rebasing onto upstream", "git pull --rebase");
 	try {
-		await rebaseFromUpstream(git, ctx, repositoryRoot, progress);
+		await rebaseFromUpstream(git, ctx, repositoryRoot, progress, model);
 	} catch (error) {
 		const detail = error instanceof Error ? error.message : String(error);
 		progress.fail(
@@ -292,7 +301,11 @@ export async function pullChanges(pi: ExtensionAPI, ctx: ExtensionContext): Prom
 	progress.succeed("Pull complete");
 }
 
-export async function pushChanges(pi: ExtensionAPI, ctx: ExtensionContext): Promise<void> {
+export async function pushChanges(
+	pi: ExtensionAPI,
+	ctx: ExtensionContext,
+	model?: string,
+): Promise<void> {
 	const progress = createProgress(pi, ctx, "push");
 	progress.step("Checking repository");
 	let git = createGitClient(pi, ctx.cwd);
@@ -303,7 +316,7 @@ export async function pushChanges(pi: ExtensionAPI, ctx: ExtensionContext): Prom
 	}
 
 	git = createGitClient(pi, repositoryRoot);
-	await pushRepository(git, ctx, repositoryRoot, progress);
+	await pushRepository(git, ctx, repositoryRoot, progress, model);
 }
 
 export async function commitAndPush(
@@ -311,11 +324,20 @@ export async function commitAndPush(
 	ctx: ExtensionContext,
 	instructions = "",
 	commitLanguage: CommitLanguage = "english",
+	model?: string,
 ): Promise<void> {
 	const progress = createProgress(pi, ctx, "commit + push");
-	const commitResult = await commitChanges(pi, ctx, instructions, commitLanguage, progress, false);
+	const commitResult = await commitChanges(
+		pi,
+		ctx,
+		instructions,
+		commitLanguage,
+		progress,
+		false,
+		model,
+	);
 	if (!commitResult) return;
 
 	const git = createGitClient(pi, commitResult.repositoryRoot);
-	await pushRepository(git, ctx, commitResult.repositoryRoot, progress);
+	await pushRepository(git, ctx, commitResult.repositoryRoot, progress, model);
 }

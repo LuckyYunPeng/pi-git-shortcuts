@@ -10,7 +10,7 @@
 - `/pull`：拉取并 rebase 当前分支，冲突时由隔离 Agent 协助解决。
 - `/push`：只推送当前分支，不创建 commit。
 - `/cp`：一次完成 commit 和 push。
-- `/git-shortcuts-config`：选择英文或简体中文 commit message。
+- `/git-shortcuts-config`：选择 Git shortcuts 使用的模型和 commit message 语言。
 - non-fast-forward push 可自动 rebase，并由仅具备文件工具的隔离 Agent 解决冲突。
 - 临时进度面板展示全部 Git 和模型阶段，不污染 session。
 
@@ -57,20 +57,15 @@
 
 ### `/git-shortcuts-config`
 
-打开模型生成 commit message 的语言选择器：
+打开配置选择器，可设置隔离 Git Agent 使用的模型和生成 commit message 的语言。选择 `Use active model` 会跟随当前 Pi session 的模型，这也是默认行为；也可以选择任意当前可用的 `provider/model`。
 
-```text
-English
-简体中文
-```
-
-默认使用英文。选择会立即生效，并全局持久化到：
+commit message 默认使用英文。选择会立即生效，并全局持久化到：
 
 ```text
 ~/.pi/agent/pi-git-shortcuts.json
 ```
 
-选择中文时，Conventional Commit 的 type 和可选 scope 保持英文，description 和 body 使用简体中文。
+配置的模型同时用于生成 commit message 和解决 rebase 冲突。选择中文时，Conventional Commit 的 type 和可选 scope 保持英文，description 和 body 使用简体中文。
 
 ## 进度界面
 
@@ -169,7 +164,7 @@ pi-git-shortcuts/
 ├── src/
 │   ├── agent.ts      # 隔离模型会话
 │   ├── commands.ts   # /commit、/cp、/pull 和 /push 流程
-│   ├── config.ts     # 持久化 commit message 语言偏好
+│   ├── config.ts     # 持久化模型和 commit message 语言偏好
 │   ├── git.ts        # Git helper 和校验
 │   ├── progress.ts   # 临时 TUI 进度面板
 │   └── index.ts      # Pi extension 入口

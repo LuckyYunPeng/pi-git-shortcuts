@@ -6,6 +6,7 @@ export type CommitLanguage = "english" | "chinese";
 
 export interface GitShortcutsConfig {
 	commitLanguage: CommitLanguage;
+	model?: string;
 }
 
 export const DEFAULT_CONFIG: GitShortcutsConfig = {
@@ -18,9 +19,15 @@ export function getConfigPath(): string {
 
 export function normalizeConfig(value: unknown): GitShortcutsConfig {
 	if (!value || typeof value !== "object" || Array.isArray(value)) return { ...DEFAULT_CONFIG };
-	const language = (value as { commitLanguage?: unknown }).commitLanguage;
+	const config = value as { commitLanguage?: unknown; model?: unknown };
 	return {
-		commitLanguage: language === "chinese" || language === "english" ? language : "english",
+		commitLanguage:
+			config.commitLanguage === "chinese" || config.commitLanguage === "english"
+				? config.commitLanguage
+				: "english",
+		...(typeof config.model === "string" && config.model.trim()
+			? { model: config.model.trim() }
+			: {}),
 	};
 }
 

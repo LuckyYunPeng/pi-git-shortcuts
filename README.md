@@ -10,7 +10,7 @@ Context-clean Git slash commands for the [Pi coding agent](https://pi.dev).
 - `/pull`: pull and rebase the current branch, resolving conflicts with an isolated agent.
 - `/push`: push the current branch without creating a commit.
 - `/cp`: commit and push in one command.
-- `/git-shortcuts-config`: choose English or Simplified Chinese commit messages.
+- `/git-shortcuts-config`: choose the model and commit message language used by Git shortcuts.
 - Non-fast-forward pushes can rebase and resolve conflicts with an isolated, file-tool-only agent.
 - A transient progress panel shows every Git and model stage without polluting the session.
 
@@ -57,20 +57,15 @@ It creates an upstream when needed and uses the same rebase and isolated conflic
 
 ### `/git-shortcuts-config`
 
-Opens a language selector for model-generated commit messages:
+Opens selectors for the model used by isolated Git agents and the language of generated commit messages. Choose `Use active model` to follow the current Pi session model, which is the default. Otherwise, select any currently available `provider/model`.
 
-```text
-English
-简体中文
-```
-
-English is the default. The selection applies immediately and is persisted globally in:
+English is the default commit language. Selections apply immediately and are persisted globally in:
 
 ```text
 ~/.pi/agent/pi-git-shortcuts.json
 ```
 
-For Chinese output, the Conventional Commit type and optional scope remain in English while the description and body use Simplified Chinese.
+The configured model is used for both commit-message generation and rebase conflict resolution. For Chinese output, the Conventional Commit type and optional scope remain in English while the description and body use Simplified Chinese.
 
 ## Progress UI
 
@@ -169,7 +164,7 @@ pi-git-shortcuts/
 ├── src/
 │   ├── agent.ts      # isolated model sessions
 │   ├── commands.ts   # /commit, /cp, /pull, and /push workflows
-│   ├── config.ts     # persistent commit-language preference
+│   ├── config.ts     # persistent model and commit-language preferences
 │   ├── git.ts        # Git helpers and validation
 │   ├── progress.ts   # transient TUI progress panel
 │   └── index.ts      # Pi extension entrypoint
