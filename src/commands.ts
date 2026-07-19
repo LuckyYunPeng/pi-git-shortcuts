@@ -23,6 +23,7 @@ import { appendResult } from "./result.js";
 
 interface CommitResult {
 	created: boolean;
+	message?: string;
 	repositoryRoot: string;
 }
 
@@ -127,7 +128,7 @@ export async function commitChanges(
 	const logResult = await git.run(["log", "-1", "--format=%h %s"]);
 	if (finalizeProgress) progress.succeed("Commit created", logResult.stdout.trim());
 	else progress.step("Commit created", logResult.stdout.trim());
-	return { created: true, repositoryRoot };
+	return { created: true, message: summary, repositoryRoot };
 }
 
 async function pushCurrentBranch(git: GitClient): Promise<Awaited<ReturnType<GitClient["run"]>>> {
@@ -224,6 +225,7 @@ async function pushRepository(
 	repositoryRoot: string,
 	progress: GitShortcutProgress,
 	model?: string,
+	commitMessage?: string,
 ): Promise<void> {
 	progress.step("Pushing current branch");
 	let pushResult: Awaited<ReturnType<GitClient["run"]>>;
@@ -236,7 +238,7 @@ async function pushRepository(
 	}
 
 	if (pushResult.code === 0) {
-		progress.succeed("Push complete");
+		progress.succeed("Push complete", commitMessage);
 		return;
 	}
 	if (!isNonFastForwardError(pushResult)) {
@@ -264,7 +266,7 @@ async function pushRepository(
 		progress.fail("Push failed after rebase", formatGitError(retryResult));
 		return;
 	}
-	progress.succeed("Rebase and push complete");
+	progress.succeed("Rebase and push complete", commitMessage);
 }
 
 export async function pullChanges(
@@ -339,5 +341,12 @@ export async function commitAndPush(
 	if (!commitResult) return;
 
 	const git = createGitClient(pi, commitResult.repositoryRoot);
-	await pushRepository(git, ctx, commitResult.repositoryRoot, progress, model);
+	await pushRepository(
+		git,
+		ctx,
+		commitResult.repositoryRoot,
+		progress,
+		model,
+		commitResult.message,
+	);
 }
