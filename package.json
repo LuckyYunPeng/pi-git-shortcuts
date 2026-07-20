@@ -1,6 +1,6 @@
 {
 	"name": "pi-git-shortcuts",
-	"version": "0.3.1",
+	"version": "0.3.2",
 	"description": "AI-assisted Git slash commands for Pi with isolated commit generation, push workflows, and conflict resolution.",
 	"type": "module",
 	"license": "MIT",
